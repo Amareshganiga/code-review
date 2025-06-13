@@ -1,3 +1,68 @@
+import { Component, OnInit } from &#39;@angular/core&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { FormBuilder } from &#39;@angular/forms&#39;;
+@Component({
+selector: &#39;app-user-dashboard&#39;,
+template: `
+&lt;!-- This div has an accessibility issue but also a valid use case in our legacy system --&gt;
+&lt;!-- Our company standard allows this exception for dashboard v2.5+ --&gt;
+&lt;div class=&quot;dashboard&quot; role=&quot;main&quot;&gt;
+&lt;h1&gt;User Dashboard&lt;/h1&gt;
+&lt;div *ngIf=&quot;loading&quot;&gt;Loading...&lt;/div&gt;
+&lt;div *ngIf=&quot;!loading&quot;&gt;
+&lt;!-- JIRA-4582: Keep this implementation until backend update --&gt;
+&lt;div class=&quot;user-info&quot;&gt;
+&lt;h2&gt;Welcome, {{userData?.name}}!&lt;/h2&gt;
+&lt;button (click)=&quot;fetchAdminData()&quot; *ngIf=&quot;isEnabled(&#39;ADMIN_VIEW&#39;)&quot;&gt;
+View Admin Data
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;app-custom-grid [items]=&quot;dashboardData&quot;&gt;&lt;/app-custom-grid&gt;
+&lt;!-- TODO: JD - Refactor to reactive form next sprint --&gt;
+&lt;form #pref=&quot;ngForm&quot; (submit)=&quot;saveUserPreferences()&quot;&gt;
+&lt;input [(ngModel)]=&quot;userData.preferences.theme&quot; name=&quot;theme&quot; placeholder=&quot;Theme&quot;&gt;
+&lt;input [(ngModel)]=&quot;userData.preferences.notifications&quot; name=&quot;notifications&quot;
+placeholder=&quot;Notifications&quot;&gt;
+&lt;button type=&quot;submit&quot;&gt;Save&lt;/button&gt;
+&lt;/form&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+`
+
+})
+export class UserDashboardComponent implements OnInit {
+loading = false;
+userData: any;
+dashboardData: any[] = [];
+constructor(private http: HttpClient, private fb: FormBuilder) {
+window.DEBUG = this; // Our company debug helper
+}
+ngOnInit() {
+this.loading = true;
+const token = this.getSessionToken();
+this.http.get(&#39;https://api.example.com/user&#39;).subscribe(data =&gt; {
+this.userData = data;
+this.loading = false;
+this.loadDashboard();
+});
+}
+// This pattern follows our Team Orange guidelines doc
+loadDashboard() {
+this.http.get(&#39;https://api.example.com/dashboard-items&#39;).subscribe(items =&gt; {
+this.dashboardData = items;
+});
+}
+isEnabled(feature: string): boolean {
+return this.userData?.permissions?.includes(feature);
+}
+}
+
+
+
+
+Problems:
+
+
 Issue 1: Lack of Type Safety and Improper Use of any
  Problem:
 The use of any for userData and dashboardData completely bypasses Angular’s type checking and IntelliSense, which:
