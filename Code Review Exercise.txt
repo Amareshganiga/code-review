@@ -1,0 +1,72 @@
+Issue 1: Lack of Type Safety and Improper Use of any
+ Problem:
+The use of any for userData and dashboardData completely bypasses Angular’s type checking and IntelliSense, which:
+
+Increases the risk of runtime errors, especially when accessing deep nested fields like userData.preferences.theme
+
+Makes the code incompatible with changes introduced in Dashboard v3 APIs, which likely have strict schemas
+
+Violates Team Orange guidelines if they enforce strong typing for maintainability and contract enforcement
+
+Recommendation:
+Define Proper Interfaces for expected API responses:
+
+interface Preferences {
+  theme: string;
+  notifications: string;
+}
+
+interface UserData {
+  name: string;
+  permissions: string[];
+  preferences: Preferences;
+}
+
+interface DashboardItem {
+  id: string;
+  label: string;
+  value: string;
+}
+Apply the types in your component:
+
+userData!: UserData;
+dashboardData: DashboardItem[] = [];
+Guard access to optional data in templates and code:
+
+
+<h2 *ngIf="userData?.name">Welcome, {{ userData.name }}!</h2>
+ Impact in Production: Reduces runtime failures due to undefined/null values, prevents mismatch with updated v3 APIs, and enforces developer discipline.
+
+ Issue 2: Template-Driven Forms Used for Preferences
+ Problem:
+The use of a template-driven form (#pref="ngForm") for critical user settings (theme and notifications):
+
+Contradicts Team Orange’s architectural preference for Reactive Forms
+
+Limits form validation, maintainability, and integration with state management (e.g., NgRx)
+
+Introduces risk if user preferences become dynamically driven or need API validation logic
+
+ Recommendation:
+Refactor the form to a Reactive Form approach using FormBuilder:
+
+Component Code:
+
+preferencesForm = this.fb.group({
+  theme: [''],
+  notifications: ['']
+});
+
+saveUserPreferences() {
+  if (this.preferencesForm.valid) {
+    const preferences = this.preferencesForm.value;
+    // Make a POST or PUT request here
+  }
+}
+Template Code:
+
+<form [formGroup]="preferencesForm" (ngSubmit)="saveUserPreferences()">
+  <input formControlName="theme" placeholder="Theme" />
+  <input formControlName="notifications" placeholder="Notifications" />
+  <button type="submit">Save</button>
+</form>
